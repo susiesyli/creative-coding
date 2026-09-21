@@ -1,0 +1,39 @@
+---
+layout: default
+title: Gallery
+description: "Interactive sketches, generative work and visual experiments by Susie S.Y. Li — built with Three.js, MediaPipe and GLSL."
+# gallery-dark scopes the dark theme to this page only: the rest of the site
+# stays on the light theme. It is on <html> as well as <body> so the root
+# backdrop is already dark before the first paint — otherwise the page-load
+# fade in globals.css would show white through for a few frames.
+html_class: gallery-dark
+body_class: gallery-dark
+stylesheets:
+  - /gallery/gallery.css
+  # Inert unless VIEW = "canvas" in gallery.js: every rule is scoped under
+  # .gc-active / .gc-* classes that only the canvas view adds.
+  - /gallery/gallery-canvas.css
+  # View toggle + the shared-element transition between the two views.
+  - /gallery/gallery-transition.css
+  # Dark theme, last so it overrides the light values above. Colour and depth
+  # only — no layout, type or behaviour.
+  - /gallery/gallery-theme.css
+# The page carries its own .nm-footer, so the site footer is left off.
+footer: false
+scripts:
+  - src: /gallery/gallery.js
+    type: module
+---
+
+<header class="nm-header">
+  <h1>Gallery</h1>
+  <p class="nm-subtitle">
+    Interactive sketches, generative work &amp; visual experiments
+  </p>
+</header>
+
+<main class="nm-main">
+  <div id="gallery"></div>
+</main>
+
+<footer class="nm-footer">Three.js • MediaPipe • GLSL</footer>

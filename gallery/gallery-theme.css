@@ -1,0 +1,239 @@
+/* Dark gallery theme.
+ *
+ * Scoped to the .gallery-dark class on <html> and <body> (set in
+ * gallery/index.html), so it recolours ONLY /gallery/ and leaves the rest of
+ * the site — research, cv, library, architecture — on the light theme. The nav
+ * is fetched into this page, so it is restyled here too, without touching the
+ * shared styles/globals.css that every other page uses.
+ *
+ * This file changes colour and depth only. No layout, spacing, typography,
+ * dimensions, coordinates or behaviour is touched: everything below overrides
+ * an existing declaration in gallery.css / gallery-canvas.css /
+ * gallery-transition.css / styles/globals.css.
+ *
+ * Both views read from the same variables, so grid and canvas are two
+ * arrangements of one visual field rather than two themed pages.
+ */
+
+.gallery-dark {
+  /* Deep warm charcoal — not black, so imagery reads as objects placed in a
+     field rather than floating in a void. */
+  --gallery-bg: #0d0d0d;
+  /* Thumbnail box before its image paints. Marginally lighter than the page so
+     a not-yet-loaded frame still has a silhouette instead of vanishing. */
+  --gallery-placeholder: #201f1e;
+
+  /* Hierarchy comes from opacity on one warm off-white, not from many hues. */
+  --gallery-text-primary: #f2f2ee;
+  --gallery-text-secondary: rgba(255, 255, 255, 0.52);
+  --gallery-text-tertiary: rgba(255, 255, 255, 0.35);
+  --gallery-text-faint: rgba(255, 255, 255, 0.12);
+  /* For large atmospheric background labels, should any be added later: they
+     must recede behind the artwork, never compete with it. */
+  --gallery-text-atmospheric: rgba(255, 255, 255, 0.07);
+
+  /* The edge that keeps a black thumbnail from dissolving into the page.
+     Barely visible over a light image; enough to draw the silhouette of a
+     dark one. */
+  --gallery-border: rgba(255, 255, 255, 0.1);
+  --gallery-border-hover: rgba(255, 255, 255, 0.18);
+  --gallery-border-drag: rgba(255, 255, 255, 0.22);
+
+  /* Elevation. On charcoal a black shadow still darkens, so these carry the
+     depth while the edge above carries the silhouette. No glow. */
+  --gallery-lift-rest: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --gallery-lift-hover: 0 14px 34px rgba(0, 0, 0, 0.55);
+  --gallery-lift-drag: 0 24px 56px rgba(0, 0, 0, 0.62);
+
+  /* Native scrollbars, focus rings and form controls follow the dark field. */
+  color-scheme: dark;
+  /* Set on the root as well as the body: the page-load fade in globals.css
+     animates body opacity, and without a dark root the browser's white default
+     would show through for those frames — and again between view switches. */
+  background-color: var(--gallery-bg);
+}
+
+body.gallery-dark {
+  background-color: var(--gallery-bg);
+  color: var(--gallery-text-primary);
+}
+
+/* ---- links / nav ----------------------------------------------------------
+   globals.css paints links black and gives the nav a white-tinted translucent
+   gradient, which on charcoal would read as a light bar. Same geometry, same
+   blur, same interaction — only the tones change, so the header stays part of
+   the field instead of becoming a separate rectangle. */
+.gallery-dark a:link,
+.gallery-dark a:visited {
+  color: var(--gallery-text-primary);
+}
+
+/* Framed elements keep their resting colour on hover; the construction frame is
+   their one pointer signal. */
+.gallery-dark a:hover:not([data-frame]) {
+  color: var(--gallery-text-secondary);
+}
+
+.gallery-dark .header-nav {
+  background: rgba(23, 23, 22, 0.72);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+/* The light-theme fallback for reduced transparency is a near-white bar. */
+@media (prefers-reduced-transparency: reduce) {
+  .gallery-dark .header-nav {
+    background: var(--gallery-bg);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+}
+
+/* ---- shared thumbnail edge -----------------------------------------------
+   An inset ring drawn as a pseudo-element rather than a border or outline:
+   `border` would change the box, and an inset box-shadow paints beneath child
+   content (the canvas thumb holds a real <img>, which would cover it). This
+   inherits the radius, so it follows each view's corner treatment exactly and
+   costs no extra DOM. */
+.gallery-dark .nm-thumb,
+.gallery-dark .gc-thumb,
+.gallery-dark .gv-fly {
+  background-color: var(--gallery-placeholder);
+}
+
+.gallery-dark .nm-thumb {
+  /* needed to anchor the ring; does not affect layout */
+  position: relative;
+}
+
+.gallery-dark .nm-thumb::after,
+.gallery-dark .gc-thumb::after,
+.gallery-dark .gv-fly::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--gallery-border);
+  border-radius: inherit;
+  pointer-events: none;
+  transition: border-color 160ms ease-out;
+}
+
+/* ---- grid view ---------------------------------------------------------- */
+.gallery-dark .nm-header h1,
+.gallery-dark .nm-section-title,
+.gallery-dark .nm-card-title {
+  color: var(--gallery-text-primary);
+}
+
+.gallery-dark .nm-subtitle,
+.gallery-dark .nm-section-subtitle,
+.gallery-dark .nm-card-desc {
+  color: var(--gallery-text-secondary);
+}
+
+.gallery-dark .nm-tags,
+.gallery-dark .nm-footer {
+  color: var(--gallery-text-tertiary);
+}
+
+.gallery-dark .nm-tag + .nm-tag::before {
+  color: var(--gallery-text-faint);
+}
+
+.gallery-dark .nm-thumb {
+  box-shadow: var(--gallery-lift-rest);
+}
+
+.gallery-dark .nm-card:hover .nm-thumb {
+  box-shadow: var(--gallery-lift-hover);
+}
+
+.gallery-dark .nm-card:hover .nm-thumb::after {
+  border-color: var(--gallery-border-hover);
+}
+
+/* ---- canvas view -------------------------------------------------------- */
+.gallery-dark .gc-title,
+.gallery-dark .gc-title-heading {
+  color: var(--gallery-text-primary);
+}
+
+.gallery-dark .gc-title-text {
+  color: var(--gallery-text-secondary);
+}
+
+.gallery-dark .gc-caption {
+  /* the project's name in this view — keeps the same step below the title that
+     it had on the light theme */
+  color: var(--gallery-text-secondary);
+}
+
+/* The hover-revealed description sits a step quieter than the caption. */
+.gallery-dark .gc-desc {
+  color: var(--gallery-text-tertiary);
+}
+
+.gallery-dark .gc-thumb {
+  box-shadow: var(--gallery-lift-rest);
+}
+
+@media (hover: hover) {
+  .gallery-dark .gc-item:hover .gc-thumb {
+    box-shadow: var(--gallery-lift-hover);
+  }
+
+  .gallery-dark .gc-item:hover .gc-thumb::after {
+    border-color: var(--gallery-border-hover);
+  }
+}
+
+/* Picked up: a touch more elevation and a slightly brighter edge. Same
+   restrained "print in hand" read as the light theme. */
+.gallery-dark .gc-item.is-dragging .gc-thumb {
+  box-shadow: var(--gallery-lift-drag);
+}
+
+.gallery-dark .gc-item.is-dragging .gc-thumb::after {
+  border-color: var(--gallery-border-drag);
+}
+
+.gallery-dark .gc-item:focus-visible .gc-thumb {
+  outline: 2px solid rgba(255, 255, 255, 0.55);
+}
+
+/* ---- canvas + view controls --------------------------------------------- */
+.gallery-dark .gc-fit,
+.gallery-dark .gv-toggle-option {
+  color: var(--gallery-text-tertiary);
+}
+
+.gallery-dark .gc-fit:hover,
+.gallery-dark .gc-fit:focus-visible,
+.gallery-dark .gv-toggle-option:hover:not(:disabled),
+.gallery-dark .gv-toggle-option:focus-visible {
+  color: var(--gallery-text-primary);
+}
+
+.gallery-dark .gc-fit:focus-visible,
+.gallery-dark .gv-toggle-option:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* The canvas-view halo, in this theme's own backdrop rather than white — a
+   white one here would read as a glow around the word instead of the field
+   simply continuing behind it. Slightly wider than the light halo because the
+   prints are the brightest thing on a dark field. */
+.gallery-dark body.gc-active .gv-toggle-option,
+body.gallery-dark.gc-active .gv-toggle-option {
+  text-shadow:
+    0 0 4px var(--gallery-bg),
+    0 0 12px var(--gallery-bg);
+}
+
+/* ---- view transition ----------------------------------------------------
+   Both views already share one background, so the field stays perfectly still
+   while cards reorganize. The two things that could have flashed light are the
+   flying copy's placeholder tone and its shadow — both are retoned above and
+   below. The overlay itself has no background of its own, by design. */
+.gallery-dark .gv-fly {
+  box-shadow: var(--gallery-lift-rest);
+}

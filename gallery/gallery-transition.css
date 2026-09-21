@@ -1,0 +1,187 @@
+/* Shared-element view transition + view toggle.
+   Loaded on /gallery/ only; every rule is scoped to a .gv-/.nm-/.gc- class. */
+
+/* ---- view visibility ----
+   Both views stay mounted so each can be measured while the other is showing.
+   The one that isn't in play is display:none — no paint, no layout, no scroll
+   contribution — except during a transition, when both are briefly live. */
+.nm-grid-view.is-hidden,
+.gc-viewport.is-hidden {
+  display: none;
+}
+
+/* Masked cards during a flight: the real ones hold their space and keep their
+   images decoded, but only the flying copies are visible. */
+.nm-grid-view.is-cards-hidden .nm-card,
+.gc-viewport.gc-items-hidden .gc-item {
+  visibility: hidden;
+}
+
+/* No card in either view is clickable mid-flight, and the canvas stops
+   accepting pan/zoom (also gated in JS). */
+body.gv-transitioning .nm-card,
+body.gv-transitioning .gc-item {
+  pointer-events: none;
+}
+
+body.gv-transitioning .gc-viewport {
+  pointer-events: none;
+}
+
+/* ---- chrome crossfade ----
+   View-specific labels and controls fade; they never fly. The nav bar is
+   deliberately absent from all of this — it stays put. */
+.nm-header,
+.nm-footer,
+.nm-section-header,
+.gc-title,
+.gc-fit {
+  transition: opacity 300ms ease-out;
+}
+
+body.gv-grid-chrome-out .nm-header,
+body.gv-grid-chrome-out .nm-footer,
+body.gv-grid-chrome-out .nm-section-header {
+  opacity: 0;
+}
+
+.gc-viewport.gc-chrome-out .gc-title,
+.gc-viewport.gc-chrome-out .gc-fit {
+  opacity: 0;
+}
+
+/* Entering the grid, its chrome starts transparent and fades up as the cards
+   arrive: `gc-active` is removed at the start of the flight, which would
+   otherwise pop the heading and footer into existence instantly. */
+body.gv-transitioning:not(.gv-grid-chrome-out) .nm-header,
+body.gv-transitioning:not(.gv-grid-chrome-out) .nm-footer,
+body.gv-transitioning:not(.gv-grid-chrome-out) .nm-section-header {
+  opacity: 1;
+}
+
+/* ---- flight overlay ---- */
+.gv-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200; /* above both views, below the nav (1000) */
+  pointer-events: none;
+  /* cards may start or finish beyond the viewport; let them travel */
+  overflow: visible;
+}
+
+/* The crop window. Sized to the source rect and scaled — possibly
+   non-uniformly — to the target rect, which is why it must clip. */
+.gv-fly {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  transform-origin: 50% 50%;
+  background-color: #ececec; /* same placeholder tone both views use */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  will-change: transform;
+  /* the overlay is removed when the flight ends, so will-change goes with it */
+}
+
+/* The image. Counter-scaled against the outer so its rendered scale stays
+   uniform — no squash — while the outer handles the aspect change. */
+.gv-fly-image {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background-repeat: no-repeat;
+  /* exact fill: this element is already laid out at the image's own aspect */
+  background-size: 100% 100%;
+  background-position: center;
+  transform-origin: 50% 50%;
+  will-change: transform;
+  filter: grayscale(100%);
+  -webkit-filter: grayscale(100%);
+}
+
+/* ---- view toggle ----
+   One word in the site's existing quiet voice, fixed so it stays perfectly
+   still while the composition reorganizes behind it. Not a toolbar.
+   Top right, tucked just under the fixed nav — the nav's own links are
+   right-aligned, so sitting flush in the corner would collide with them. */
+.gv-toggle {
+  position: fixed;
+  right: 24px;
+  top: 72px;
+  /* Above every layer either view can produce — the canvas chrome (60), the
+     flight overlay (200) and any print lifted by a hover or a drag. The control
+     is the one thing on the page that must never be obscured. */
+  z-index: 900;
+  display: flex;
+  gap: 14px;
+  font-family: "Helvetica Neue", sans-serif;
+}
+
+.gv-toggle-option {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 6px 0;
+  font: inherit;
+  font-size: 0.8rem;
+  letter-spacing: 0.01em;
+  color: #a0a0a0;
+  cursor: pointer;
+  transition: color 160ms ease-out;
+}
+
+/* Only the action you are not already in is offered. Stated explicitly because
+   the UA `[hidden]` rule is a weak `display: none` that any later display
+   declaration on the element would quietly beat. */
+.gv-toggle-option[hidden] {
+  display: none;
+}
+
+/* In the canvas view any print can be panned under the label, so the glyphs
+   carry a soft halo in the page's own background colour. No plate, no box —
+   the control stays a word in the corner, it just never sits on top of an
+   image it can't be read against. Two shadows: a tight one for contrast right
+   at the edge of each stroke, a wide one to hold off busy detail. */
+body.gc-active .gv-toggle-option {
+  text-shadow:
+    0 0 3px #fff,
+    0 0 10px #fff;
+}
+
+.gv-toggle-option:hover:not(:disabled) {
+  color: #222;
+}
+
+/* Genuinely disabled mid-flight, so the animation can't be re-entered — but not
+   dimmed: the label has already flipped to the next action, and fading it for
+   the whole flight would read as the click not having registered. */
+.gv-toggle-option:disabled {
+  cursor: default;
+}
+
+.gv-toggle-option:focus-visible {
+  outline: 1px solid rgba(0, 0, 0, 0.4);
+  outline-offset: 3px;
+  color: #222;
+}
+
+/* The mobile nav stacks its links into a taller block, so drop further down to
+   clear it. */
+@media (max-width: 600px) {
+  .gv-toggle {
+    right: 20px;
+    top: 104px;
+    gap: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nm-header,
+  .nm-footer,
+  .nm-section-header,
+  .gc-title,
+  .gc-fit,
+  .gv-toggle-option {
+    transition: none;
+  }
+}

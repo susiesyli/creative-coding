@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>susiesyli / gallery / corner-pin panel</title>
+    <link rel="stylesheet" href="./style.css" />
+
+    <!-- MediaPipe Hands (UMD global: Hands). Camera stream is handled by our
+         own getUserMedia in handTracking.js, not the Camera helper. -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  </head>
+
+  <body>
+    <!-- Single 2D canvas: webcam + filter-lens panel + debug overlay -->
+    <canvas id="panel"></canvas>
+
+    <!-- Webcam source for MediaPipe + the canvas draw (visually hidden). -->
+    <video id="webcam" playsinline muted></video>
+
+    <!-- Actual capture resolution -->
+    <div id="camres">…</div>
+
+    <!-- Touchless gesture picker (A/B test which one switches filters). Buttons
+         are populated from GESTURE_MODES in main.js. -->
+    <div id="gesture-ui"></div>
+
+    <!-- Discoverability: tell first-time visitors what to do. -->
+    <div id="hint">
+      hold both hands up to place the panel · <kbd>pinch</kbd> to switch filter
+    </div>
+
+    <!-- Transient confirmation of the active filter (§13 feedback). -->
+    <div id="filter-toast" aria-live="polite"></div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
