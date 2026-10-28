@@ -1,0 +1,314 @@
+/* Canvas ("scatter") gallery view — only active when VIEW = "canvas" in
+   gallery.js. Every rule is scoped under .gc-active or a .gc- class, so this
+   stylesheet is inert for the default grid view.
+
+   Motion budget for this view is deliberately small: the only things that
+   animate are the pan itself (driven in JS) and a short hover/load fade.
+   Nothing eases in on scroll, nothing springs, nothing bounces. */
+
+/* The canvas owns the viewport: no page scroll, and the grid view's centered
+   header/footer are hidden because the title lives inside the world. */
+html.gc-active {
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+
+body.gc-active {
+  overflow: hidden;
+  height: 100vh;
+  /* the page-level fade-in from globals.css would fade the whole sheet on
+     every return visit; the canvas restores position instead */
+  animation: none;
+}
+
+body.gc-active .nm-header,
+body.gc-active .nm-footer,
+body.gc-active #footer {
+  display: none;
+}
+
+body.gc-active .nm-main {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Viewport — the fixed window onto the sheet. */
+.gc-viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+  /* the pan owns both axes; stop the browser claiming them for scroll/zoom */
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+  /* no tap-highlight flash on touch, which would read as a click on a pan */
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gc-viewport.gc-grabbing {
+  cursor: grabbing;
+}
+
+/* While the sheet or a print is moving, thumbnails stop receiving pointer
+   events. This kills the trail of hover states a gesture would otherwise drag
+   across the composition, and it costs one class toggle rather than per-item
+   work. The print being dragged opts back in so its lifted state survives. */
+.gc-viewport.gc-inert .gc-world {
+  pointer-events: none;
+}
+
+.gc-viewport.gc-inert .gc-item.is-dragging {
+  pointer-events: auto;
+}
+
+/* World — the single element that moves when panning. One transform per frame.
+   will-change is permanent by design: this element is transformed constantly,
+   and toggling the hint would churn layers at the start of every gesture. */
+.gc-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+/* Every object is placed by transform rather than left/top, so moving a print
+   is a compositor-level change instead of a layout change. The composition
+   order matters: translate first (placement), then rotate (authored, never
+   changed by a drag), then scale (hover / lift only). */
+.gc-object {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate3d(var(--gc-x, 0px), var(--gc-y, 0px), 0)
+    rotate(var(--gc-rotation, 0deg)) scale(var(--gc-scale, 1));
+}
+
+/* Title cluster — just another object in the world. */
+.gc-title {
+  color: #222;
+}
+
+.gc-title-heading {
+  margin: 0 0 12px;
+  font-size: 4.25rem;
+  font-weight: 300;
+  letter-spacing: -0.02em; /* tighten display-size type */
+  line-height: 1.05;
+}
+
+.gc-title-text {
+  margin: 0;
+  max-width: 55ch;
+  color: #7a7a7a;
+  font-size: 1.5rem;
+  line-height: 1.6;
+}
+
+/* Thumbnails. The whole <a> is the hit target and the grab surface, so the
+   cursor stays grab (not the link's default pointer) — everything on the
+   sheet behaves the same way under the hand, and `inherit` also lets the
+   grabbing cursor carry over thumbnails mid-drag. */
+.gc-item {
+  color: inherit;
+  text-decoration: none;
+  cursor: inherit;
+  /* the pan and the print-drag both own the pointer outright */
+  touch-action: none;
+  /* only --gc-scale animates here; position is driven per-frame in JS and is
+     excluded below while dragging so the print can't lag behind the pointer */
+  transition: transform 140ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+/* The frame is sized by ratio, so its box is final before the image loads —
+   no reflow, no layout shift, no jump in the composition. */
+.gc-thumb {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background-color: #ececec;
+  /* same corner as the grid view's .nm-thumb — one visual language across both
+     arrangements. If you change it, change `radius` in getGeometry() too, or
+     the view transition will start its corner interpolation from the wrong
+     value. */
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.09);
+  transition: box-shadow 160ms ease-out;
+}
+
+.gc-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(100%);
+  -webkit-filter: grayscale(100%);
+  /* opacity is the load fade; filter is the hover change */
+  opacity: 0;
+  transition:
+    opacity 200ms ease-out,
+    filter 160ms ease-out;
+}
+
+/* Set immediately for cached images, so a return visit has no fade at all. */
+.gc-img.is-loaded {
+  opacity: 1;
+}
+
+/* Sized larger than the grid view's caption on purpose: on the canvas the type
+   competes with the thumbnails rather than sitting in a tidy column, so it
+   needs more presence to hold its own against the imagery. */
+.gc-caption {
+  margin-top: 10px;
+  font-size: 1.5rem;
+  color: #8a8a8a;
+  letter-spacing: 0.01em;
+}
+
+/* The project's `desc`, shown while anywhere on its card is hovered.
+
+   Absolutely positioned on purpose, so revealing it never changes the card's
+   box: collision boxes and drag bounds are derived from a fixed
+   CAPTION_ALLOWANCE, and a card that grew in flow would put the two out of
+   step. `top: 100%` places it just under the caption.
+
+   pointer-events stay off, so it can never intercept the click that opens the
+   project, never start a drag, and never block hover on a card beneath it —
+   and because the whole card is the trigger, it has no bearing on whether the
+   text stays open. */
+.gc-desc {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  margin-top: 6px;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: #9a9a9a;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease-out;
+}
+
+/* Fit-to-view action. Deliberately not a toolbar: the same small, lowercase,
+   muted text the captions and footer use, tucked in the corner, and only
+   present when the camera isn't already showing the whole sheet. */
+.gc-fit {
+  position: fixed;
+  right: 24px;
+  bottom: 20px;
+  z-index: 60;
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 6px 2px;
+  font: inherit;
+  font-size: 0.8rem;
+  letter-spacing: 0.01em;
+  color: #8a8a8a;
+  cursor: pointer;
+  /* hidden until the view moves off fit; not focusable while hidden */
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 160ms ease-out,
+    color 160ms ease-out;
+}
+
+.gc-fit.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.gc-fit:hover {
+  color: #222;
+}
+
+.gc-fit:focus-visible {
+  outline: 1px solid rgba(0, 0, 0, 0.4);
+  outline-offset: 3px;
+  color: #222;
+}
+
+/* Restrained hover: 1.5% scale, a lift in stacking order, and the image
+   coming to colour. Nothing translates, nothing rotates further. */
+@media (hover: hover) {
+  .gc-item:hover {
+    --gc-scale: 1.015;
+    z-index: 10;
+  }
+
+  .gc-item:hover .gc-thumb {
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.13);
+  }
+
+  .gc-item:hover .gc-img {
+    filter: none;
+    -webkit-filter: none;
+  }
+
+  /* Grouped with the other hover states, and inside the hover media query, so
+     it never sticks on a touch device the way a bare :hover can. */
+  .gc-item:hover .gc-desc {
+    opacity: 1;
+  }
+}
+
+/* Picked up. A print in hand sits above everything and lifts very slightly —
+   the shadow does most of the work. No rotation change, no spring, no snap.
+   Declared after :hover so it wins at equal specificity.
+
+   The transition is dropped entirely: position is written every frame from the
+   pointer, and tweening it would make the print lag behind the hand. */
+.gc-item.is-dragging {
+  --gc-scale: 1.02;
+  z-index: 40;
+  transition: none;
+  will-change: transform;
+}
+
+.gc-item.is-dragging .gc-thumb {
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.18);
+}
+
+.gc-item.is-dragging .gc-img {
+  filter: none;
+  -webkit-filter: none;
+}
+
+/* Keyboard focus must be visible — these are real links. */
+.gc-item:focus-visible {
+  outline: none;
+  z-index: 10;
+}
+
+.gc-item:focus-visible .gc-thumb {
+  outline: 2px solid rgba(0, 0, 0, 0.55);
+  outline-offset: 4px;
+}
+
+.gc-item:focus-visible .gc-img {
+  filter: none;
+  -webkit-filter: none;
+}
+
+/* Reduced motion: keep the state changes, drop the tweening. Momentum is
+   skipped in JS, so a release stops the sheet dead. Direct manipulation is
+   exempt on purpose — a print following the pointer 1:1 is not decorative
+   motion, it is the gesture itself. */
+@media (prefers-reduced-motion: reduce) {
+  .gc-item,
+  .gc-thumb,
+  .gc-img,
+  .gc-desc,
+  .gc-fit {
+    transition: none;
+  }
+
+  .gc-item:hover {
+    --gc-scale: 1;
+  }
+}

@@ -1,0 +1,163 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #000;
+  height: 100%;
+}
+
+/* Single stage: webcam, filter-lens panel, and debug overlay all render here. */
+#panel {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  z-index: 1;
+}
+
+/* Webcam element feeds MediaPipe + the canvas draw but is never shown
+   directly. Kept in-layout (not display:none) and on-screen-sized so browsers
+   keep decoding frames; parked behind the canvas with zero opacity. */
+#webcam {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  width: 2px;
+  height: 2px;
+  opacity: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+#hint {
+  position: fixed;
+  left: 16px;
+  bottom: 14px;
+  z-index: 3;
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+  user-select: none;
+  background: rgba(0, 0, 0, 0.35);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  padding: 5px 9px;
+  border-radius: 8px;
+  transition: opacity 0.6s ease;
+}
+
+/* Fade the hint out once the user has clearly engaged (both hands seen). */
+#hint.dismissed {
+  opacity: 0;
+}
+
+#hint kbd {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: inherit;
+}
+
+/* Transient toast naming the filter the user just switched to. */
+#filter-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.96);
+  z-index: 5;
+  font-family: system-ui, sans-serif;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  backdrop-filter: blur(12px) saturate(150%);
+  padding: 8px 16px;
+  border-radius: 999px;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+#filter-toast.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #filter-toast {
+    transition: opacity 0.18s ease;
+    transform: translate(-50%, -50%);
+  }
+  #filter-toast.show {
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Actual webcam capture resolution, top-right. */
+#camres {
+  position: fixed;
+  right: 14px;
+  top: 12px;
+  z-index: 3;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(0, 0, 0, 0.4);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  padding: 3px 7px;
+  border-radius: 6px;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Gesture picker, bottom-center. Small, unobtrusive; active mode highlighted. */
+#gesture-ui {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  backdrop-filter: blur(10px) saturate(140%);
+  border-radius: 10px;
+  font-family: system-ui, sans-serif;
+  user-select: none;
+}
+
+#gesture-ui button {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s, transform 0.09s;
+}
+
+#gesture-ui button:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #fff;
+}
+
+/* Instant press feedback (§1). */
+#gesture-ui button:active {
+  transform: scale(0.94);
+}
+
+#gesture-ui button.active {
+  background: #00ff88;
+  border-color: #00ff88;
+  color: #000;
+}
